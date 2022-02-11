@@ -92,6 +92,31 @@ function DVue(options) {
     // 编译模版
     new Compiler(this.$el, this)
 }
+// 设置新增字段方法
+DVue.prototype.set = function(target, key, val) {
+
+    if(target === undefined || target === null) return
+    if(typeof target !== 'object') return
+
+    //获取数据内容上的依赖中心
+    const ob = target.__ob__
+    if(!ob) {
+        // 非响应式对象
+        target[key] = val
+        console.warn('非响应式对象');
+        return val
+    } else {
+        if(Array.isArray(target)) {
+            target.length = Math.max(target.length, key)
+            target.splice(key, 1, val)
+        } else {
+            definReactive(target, key , val)
+            ob.dep.notify()
+        }
+        return val
+    }
+}
+
 // proxy方法
 function proxy(data, vm) {
     // 使用vm.$data原因是vm.$data会被数据劫持

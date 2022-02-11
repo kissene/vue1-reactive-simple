@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vue1手写响应式-精简版</title>
+</head>
+<body>
+    <div id="app">
+        <h1>数据响应式</h1>
+        <div>{{foo}}</div>
+        <div>{{bar}}</div>
+        <div>
+            {{arr}}
+        </div>
+        <h1>事件</h1>
+        <div>
+            {{counter}}
+            <button v-on:click="handleAdd">+</button>
+            <button @click="handleSub">-</button>
+        </div>
+        <h1>v-bind</h1>
+        <div>
+            <span v-bind:title="bindTitle">右键审查元素查看我的 title 属性</span>
+        </div>
+        <h1>v-text</h1>
+        <div>
+            <span v-text="text"></span>
+        </div>
+        <h1>v-model</h1>
+        <div>
+            <input type="text" v-model="inputVal">
+            {{inputVal}}
+        </div>
+        <h1>v-html</h1>
+        <div>     
+            <p v-html="rawHtml">使用v-html: {{ rawHtml }}</p>
+        </div>
+
+    </div>
+    
+    <script src="./Dvue.js"></script>
+    <script>
+        let vm = new DVue({
+            el: '#app',
+            data: {
+                foo: 'foo',
+                bar: {
+                    a: 1
+                },
+                arr: [1,2,3],
+                counter: 0,
+                inputVal: '',
+                bindTitle: '我是title',
+                text: '我是text',
+                rawHtml:'<span style="color:red">一个span 元素</span>'
+            },
+            methods: {
+                handleAdd() {
+                    this.counter++
+                },
+                handleSub() {
+                    if(this.counter<1) return
+                    this.counter--
+                }
+            }
+        })
+        setTimeout(()=> {
+            vm.foo = 'hello world!'
+            vm.bar.a = 2
+            vm.arr.push(4)
+            vm.bindTitle = 'titletile'
+            // console.log(vm.bar)
+            // console.log(vm.arr)
+        },1000)
+    </script>
+</body>
+</html>

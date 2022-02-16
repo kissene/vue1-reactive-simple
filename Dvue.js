@@ -149,6 +149,10 @@ function definReactive(data, key ,val) {
                     childObj.dep.add()
                 }
             }
+            //如果是数组，那么数组中的每个值都添加到依赖列表里
+            if(Array.isArray(val)) {
+                dependArray(val);
+            }
             // console.log(`get key: ${key}, value: ${val}`)
             return val
         },
@@ -229,21 +233,44 @@ Dep.prototype.notify = function() {
 
 // Watcher方法
 // cb 回调函数 负责 更新dom
-function Watcher(vm, key, cb) {
+function Watcher(vm, expOrPath, cb) {
     this.vm = vm
-    this.key = key
+    this.getter = parsePath(expOrPath)
     // 初始化时给Dep.target赋值
     // 备份cb
     this._cb = cb
+    this.value = this.get()
+
+}
+
+// 更新操作
+Watcher.prototype.get = function() {
     Dep.target = this
     // 属性的读取，进行依赖收集
-    this.vm[key]
+    let value = this.getter.call(this.vm, this.vm)
     Dep.target = null
+    return value
 }
 
 // 更新操作
 Watcher.prototype.update = function() {
-    this._cb.call(this.vm, this.vm[this.key])
+    this.value = this.get()
+    this._cb.call(this.vm, this.value)
+}
+// 解析路径
+const bailRE = /[^\w.$]/
+function parsePath(path) {
+    if(bailRE.test(path)) {
+        return
+    }
+    const segments = path.split('.')
+    return function(obj) {
+        for (let i = 0, len = segments.length; i < len; i++) {
+            if(!obj) return
+            obj = obj[segments[i]]
+        }
+        return obj
+    }
 }
 
 // 编译方法
@@ -339,7 +366,7 @@ Compiler.prototype.htmlUpdater = function(node, val) {
 
 // 编译属性
 Compiler.prototype.compileVBind = function(node, exp, dir, attrName) {
-    console.log(node, exp, dir, attrName)
+    // console.log(node, exp, dir, attrName)
     // 移除v-bind属性
     node.removeAttribute(attrName)
     this.update(node, exp, 'bind', dir)
@@ -353,7 +380,9 @@ Compiler.prototype.bindUpdater = function(node, val, attr) {
 Compiler.prototype.update = function(node, exp, dir, attr) {
     // 初始化
     const fn = this[`${dir}Updater`]
-    fn&&fn(node, this.$vm[exp], attr)
+    let getter = parsePath(exp)
+
+    fn&&fn(node, getter(this.$vm), attr)
     // 创建watcher
     new Watcher(this.$vm, exp,  val => {
         fn && fn(node, val, attr)
@@ -384,3 +413,13 @@ Compiler.prototype.isDir = function(attrName) {
 Compiler.prototype.isEvent = function(attrName) {
     return attrName.startsWith('v-on:') || attrName.startsWith('@')
 }
+function dependArray (value) {
+    for (i = 0, l = value.length; i < l; i++) {
+      let e = value[i];
+      //在调用这个函数的时候，数组已经被observe过了，且会递归observe。(看上面defineReactive函数里的这行代码：var childOb = observe(val);) 所以正常情况下都会存在__ob__属性，这个时候就可以调用dep添加依赖了。
+      e && e.__ob__ && e.__ob__.dep.depend();
+      if (Array.isArray(e)) {
+        dependArray(e);
+      }
+    }
+  }
